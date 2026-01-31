@@ -41,35 +41,33 @@ export default function ProfilePage() {
   const { data: session, isPending } = useSession();
   const [checkIns, setCheckIns] = useState<CheckIn[]>([]);
   const [stats, setStats] = useState<Stats | null>(null);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(!session?.user ? false : true);
 
   useEffect(() => {
-    if (session?.user) {
-      Promise.all([
-        fetch("/api/checkins").then((res) => res.json()),
-        fetch("/api/bingo/current").then((res) => res.json()),
-      ])
-        .then(([checkInsData, bingoData]) => {
-          setCheckIns(checkInsData.checkIns || []);
+    if (!session?.user) return;
 
-          // Calculate unique places
-          const uniquePlaces = new Set(
-            (checkInsData.checkIns || []).map(
-              (c: CheckIn & { place_id: string }) => c.place_name
-            )
-          );
+    Promise.all([
+      fetch("/api/checkins").then((res) => res.json()),
+      fetch("/api/bingo/current").then((res) => res.json()),
+    ])
+      .then(([checkInsData, bingoData]) => {
+        setCheckIns(checkInsData.checkIns || []);
 
-          setStats({
-            totalCheckIns: checkInsData.checkIns?.length || 0,
-            placesVisited: uniquePlaces.size,
-            completedLines: bingoData.completedLines || 0,
-          });
-        })
-        .catch(console.error)
-        .finally(() => setLoading(false));
-    } else {
-      setLoading(false);
-    }
+        // Calculate unique places
+        const uniquePlaces = new Set(
+          (checkInsData.checkIns || []).map(
+            (c: CheckIn & { place_id: string }) => c.place_name
+          )
+        );
+
+        setStats({
+          totalCheckIns: checkInsData.checkIns?.length || 0,
+          placesVisited: uniquePlaces.size,
+          completedLines: bingoData.completedLines || 0,
+        });
+      })
+      .catch(console.error)
+      .finally(() => setLoading(false));
   }, [session]);
 
   const handleSignOut = async () => {
@@ -214,7 +212,7 @@ export default function ProfilePage() {
                         <p className="font-medium">{checkIn.place_name}</p>
                         {checkIn.note && (
                           <p className="text-sm text-muted-foreground">
-                            "{checkIn.note}"
+                            &ldquo;{checkIn.note}&rdquo;
                           </p>
                         )}
                       </div>

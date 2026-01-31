@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { query, queryOne } from "@/lib/db";
 import { getSession } from "@/lib/get-session";
+import { calculateBingoLines } from "@/lib/bingo";
 
 interface BingoCard {
   id: string;
@@ -22,57 +23,6 @@ interface BingoCompletion {
   completed_at: string;
 }
 
-// Calculate completed Bingo lines (rows, columns, diagonals)
-function calculateBingoLines(completedIndices: Set<number>): number {
-  let lines = 0;
-
-  // Check rows (5 rows)
-  for (let row = 0; row < 5; row++) {
-    let rowComplete = true;
-    for (let col = 0; col < 5; col++) {
-      if (!completedIndices.has(row * 5 + col)) {
-        rowComplete = false;
-        break;
-      }
-    }
-    if (rowComplete) lines++;
-  }
-
-  // Check columns (5 columns)
-  for (let col = 0; col < 5; col++) {
-    let colComplete = true;
-    for (let row = 0; row < 5; row++) {
-      if (!completedIndices.has(row * 5 + col)) {
-        colComplete = false;
-        break;
-      }
-    }
-    if (colComplete) lines++;
-  }
-
-  // Check diagonal (top-left to bottom-right)
-  let diag1Complete = true;
-  for (let i = 0; i < 5; i++) {
-    if (!completedIndices.has(i * 5 + i)) {
-      diag1Complete = false;
-      break;
-    }
-  }
-  if (diag1Complete) lines++;
-
-  // Check diagonal (top-right to bottom-left)
-  let diag2Complete = true;
-  for (let i = 0; i < 5; i++) {
-    if (!completedIndices.has(i * 5 + (4 - i))) {
-      diag2Complete = false;
-      break;
-    }
-  }
-  if (diag2Complete) lines++;
-
-  return lines;
-}
-
 export async function GET() {
   try {
     const session = await getSession();
@@ -87,7 +37,7 @@ export async function GET() {
     const weekStartDate = monday.toISOString().split("T")[0];
 
     // Get current week's bingo card
-    let card = await queryOne<BingoCard>(
+    const card = await queryOne<BingoCard>(
       "SELECT * FROM bingo_card WHERE week_start_date = $1",
       [weekStartDate]
     );
@@ -133,7 +83,7 @@ export async function GET() {
           .filter((t) => completedTaskIds.has(t.id))
           .map((t) => t.task_index)
       );
-      completedLines = calculateBingoLines(completedIndices);
+      completedLines = calculateBingoLines(completedIndices).lines;
     }
 
     return NextResponse.json({

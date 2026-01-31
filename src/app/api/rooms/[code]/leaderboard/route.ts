@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { query, queryOne } from "@/lib/db";
+import { calculateBingoLines } from "@/lib/bingo";
 
 interface LeaderboardEntry {
   user_id: string;
@@ -7,58 +8,6 @@ interface LeaderboardEntry {
   user_image: string | null;
   completed_count: number;
   completed_lines: number;
-}
-
-// Calculate completed Bingo lines
-function calculateBingoLines(completedIndices: number[]): number {
-  const indexSet = new Set(completedIndices);
-  let lines = 0;
-
-  // Check rows (5 rows)
-  for (let row = 0; row < 5; row++) {
-    let rowComplete = true;
-    for (let col = 0; col < 5; col++) {
-      if (!indexSet.has(row * 5 + col)) {
-        rowComplete = false;
-        break;
-      }
-    }
-    if (rowComplete) lines++;
-  }
-
-  // Check columns (5 columns)
-  for (let col = 0; col < 5; col++) {
-    let colComplete = true;
-    for (let row = 0; row < 5; row++) {
-      if (!indexSet.has(row * 5 + col)) {
-        colComplete = false;
-        break;
-      }
-    }
-    if (colComplete) lines++;
-  }
-
-  // Check diagonal (top-left to bottom-right)
-  let diag1Complete = true;
-  for (let i = 0; i < 5; i++) {
-    if (!indexSet.has(i * 5 + i)) {
-      diag1Complete = false;
-      break;
-    }
-  }
-  if (diag1Complete) lines++;
-
-  // Check diagonal (top-right to bottom-left)
-  let diag2Complete = true;
-  for (let i = 0; i < 5; i++) {
-    if (!indexSet.has(i * 5 + (4 - i))) {
-      diag2Complete = false;
-      break;
-    }
-  }
-  if (diag2Complete) lines++;
-
-  return lines;
 }
 
 export async function GET(
@@ -108,7 +57,7 @@ export async function GET(
         user_name: member.user_name,
         user_image: member.user_image,
         completed_count: indices.length,
-        completed_lines: calculateBingoLines(indices),
+        completed_lines: calculateBingoLines(indices).lines,
       };
     });
 

@@ -1,15 +1,34 @@
 import { NextRequest, NextResponse } from "next/server";
 import { query, queryOne } from "@/lib/db";
-import { requireUserId } from "@/lib/get-session";
+import { requireUserId, getUserId } from "@/lib/get-session";
+import { generateRoomCode } from "@/lib/room-code";
 
-// Generate a random 6-character alphanumeric code
-function generateRoomCode(): string {
-  const chars = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789"; // Excluding I, O, 0, 1 for clarity
-  let code = "";
-  for (let i = 0; i < 6; i++) {
-    code += chars.charAt(Math.floor(Math.random() * chars.length));
+// Get current user's rooms
+export async function GET() {
+  try {
+    const userId = await getUserId();
+    if (!userId) {
+      return NextResponse.json({ rooms: [] });
+    }
+
+    const rooms = await query<{ id: string; code: string; theme: string }>(
+      `SELECT r.id, r.code, bc.theme
+       FROM room r
+       JOIN room_member rm ON r.id = rm.room_id
+       JOIN bingo_card bc ON r.bingo_card_id = bc.id
+       WHERE rm.user_id = $1
+       ORDER BY rm.joined_at DESC`,
+      [userId]
+    );
+
+    return NextResponse.json({ rooms });
+  } catch (error) {
+    console.error("Error fetching user rooms:", error);
+    return NextResponse.json(
+      { error: "Failed to fetch rooms" },
+      { status: 500 }
+    );
   }
-  return code;
 }
 
 interface CreateRoomRequest {

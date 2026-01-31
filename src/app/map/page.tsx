@@ -178,7 +178,7 @@ export default function MapPage() {
               {/* Note */}
               {selectedPoint.latest_note && (
                 <p className="text-sm text-muted-foreground">
-                  "{selectedPoint.latest_note}"
+                  &ldquo;{selectedPoint.latest_note}&rdquo;
                 </p>
               )}
 

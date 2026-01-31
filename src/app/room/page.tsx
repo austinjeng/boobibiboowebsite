@@ -43,13 +43,24 @@ export default function RoomPage() {
   const [error, setError] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
 
-  // Fetch room info if user has joined one (stored in localStorage for MVP)
+  // Fetch room info: check localStorage first, then fall back to server
   useEffect(() => {
     const savedCode = localStorage.getItem("roomCode");
     if (savedCode) {
       fetchRoomData(savedCode);
+    } else if (session?.user) {
+      fetch("/api/rooms")
+        .then((res) => res.json())
+        .then((data) => {
+          if (data.rooms?.length > 0) {
+            const code = data.rooms[0].code;
+            localStorage.setItem("roomCode", code);
+            fetchRoomData(code);
+          }
+        })
+        .catch(() => {});
     }
-  }, []);
+  }, [session]);
 
   const fetchRoomData = async (code: string) => {
     setLoading(true);

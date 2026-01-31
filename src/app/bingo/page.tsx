@@ -6,6 +6,7 @@ import { AppLayout } from "@/components/app-layout";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
+import { calculateBingoLines } from "@/lib/bingo";
 import { Check, Trophy } from "lucide-react";
 
 interface BingoTask {
@@ -59,79 +60,6 @@ const DEFAULT_TASKS = [
   "完成一條 Bingo 線（任意五格）",
 ];
 
-function calculateCompletedLines(completedIndices: Set<number>): {
-  lines: number;
-  winningIndices: Set<number>;
-} {
-  const winningIndices = new Set<number>();
-  let lines = 0;
-
-  // Check rows
-  for (let row = 0; row < 5; row++) {
-    let rowComplete = true;
-    for (let col = 0; col < 5; col++) {
-      if (!completedIndices.has(row * 5 + col)) {
-        rowComplete = false;
-        break;
-      }
-    }
-    if (rowComplete) {
-      lines++;
-      for (let col = 0; col < 5; col++) {
-        winningIndices.add(row * 5 + col);
-      }
-    }
-  }
-
-  // Check columns
-  for (let col = 0; col < 5; col++) {
-    let colComplete = true;
-    for (let row = 0; row < 5; row++) {
-      if (!completedIndices.has(row * 5 + col)) {
-        colComplete = false;
-        break;
-      }
-    }
-    if (colComplete) {
-      lines++;
-      for (let row = 0; row < 5; row++) {
-        winningIndices.add(row * 5 + col);
-      }
-    }
-  }
-
-  // Check diagonals
-  let diag1Complete = true;
-  for (let i = 0; i < 5; i++) {
-    if (!completedIndices.has(i * 5 + i)) {
-      diag1Complete = false;
-      break;
-    }
-  }
-  if (diag1Complete) {
-    lines++;
-    for (let i = 0; i < 5; i++) {
-      winningIndices.add(i * 5 + i);
-    }
-  }
-
-  let diag2Complete = true;
-  for (let i = 0; i < 5; i++) {
-    if (!completedIndices.has(i * 5 + (4 - i))) {
-      diag2Complete = false;
-      break;
-    }
-  }
-  if (diag2Complete) {
-    lines++;
-    for (let i = 0; i < 5; i++) {
-      winningIndices.add(i * 5 + (4 - i));
-    }
-  }
-
-  return { lines, winningIndices };
-}
-
 export default function BingoPage() {
   const [data, setData] = useState<BingoData | null>(null);
   const [loading, setLoading] = useState(true);
@@ -160,7 +88,7 @@ export default function BingoPage() {
   const completedIndices = new Set(
     tasks.filter((t) => completedTaskIds.has(t.id)).map((t) => t.task_index)
   );
-  const { lines, winningIndices } = calculateCompletedLines(completedIndices);
+  const { lines, winningIndices } = calculateBingoLines(completedIndices);
 
   if (loading) {
     return (
